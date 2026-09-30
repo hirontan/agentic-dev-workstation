@@ -38,6 +38,20 @@ def issue_number(value):
     return value
 
 
+def task_name(value):
+    if not re.fullmatch(r'[a-zA-Z0-9_-]{1,50}', value):
+        raise argparse.ArgumentTypeError('Name must consist of alphanumeric characters, hyphens, or underscores (up to 50 characters).')
+    return value
+
+
+def target_identity(args):
+    if getattr(args, 'name', None):
+        return args.name, f'agent/{args.name}'
+    if getattr(args, 'issue', None):
+        return f'issue-{args.issue}', f'agent/issue-{args.issue}'
+    raise Failure('Either --issue or --name is required.')
+
+
 def repository(path):
     directory = Path(path).expanduser().resolve()
     if git(directory, 'rev-parse', '--is-bare-repository').stdout.strip() == 'true':
@@ -66,7 +80,8 @@ def layout(args, repo, name):
     primary = common.parent if common.name == '.git' else repo
     if any(root == item or item in root.parents for item in (repo, primary)):
         raise Failure('Worktree root must be outside the current repository.')
-    return root / name / f'issue-{args.issue}', f'agent/issue-{args.issue}'
+    slug, branch = target_identity(args)
+    return root / name / slug, branch, slug
 
 
 def records(repo):
@@ -86,7 +101,7 @@ def records(repo):
 def validate_tree(repo, common, tree, branch):
     record = records(repo).get(str(tree))
     if not record or record.get('branch') != f'refs/heads/{branch}':
-        raise Failure(f'Path is not the registered worktree for this Issue branch ({branch}). Run \'workstation new-worktree --issue <number>\' first.')
+        raise Failure(f'Path is not the registered worktree for this branch ({branch}). Run \'workstation new-worktree\' first.')
     if not tree.is_dir():
         raise Failure('Registered worktree is missing. Inspect git worktree list/prune manually.')
     actual = repository(tree)[1]
@@ -101,14 +116,14 @@ def commit(repo, reference):
 
 def new_tree(args):
     repo, common, name = repository(args.repo)
-    tree, branch = layout(args, repo, name)
+    tree, branch, _slug = layout(args, repo, name)
     with locked(common):
         if tree.exists() or tree.is_symlink():
             validate_tree(repo, common, tree, branch)
             print(f'REUSED {tree}')
             return
         if git(repo, 'show-ref', '--verify', f'refs/heads/{branch}', check=False).returncode == 0:
-            raise Failure('Issue branch already exists. Inspect it manually; no branch was reset.')
+            raise Failure('Workspace branch already exists. Inspect it manually; no branch was reset.')
         base = commit(repo, args.base)
         tree.parent.mkdir(parents=True, exist_ok=True)
         git(repo, 'worktree', 'add', '-b', branch, tree, base)
@@ -117,7 +132,7 @@ def new_tree(args):
 
 def remove_tree(args):
     repo, common, name = repository(args.repo)
-    tree, branch = layout(args, repo, name)
+    tree, branch, _slug = layout(args, repo, name)
     with locked(common):
         validate_tree(repo, common, tree, branch)
         primary = common.parent if common.name == '.git' else repo
@@ -149,8 +164,8 @@ def session(args):
         raise Failure('tmux is required.')
     agent = find_agent(args.agent)
     repo, common, name = repository(args.repo)
-    tree, branch = layout(args, repo, name)
-    session_name, window_name = f'ws-{name}', f'issue-{args.issue}'
+    tree, branch, slug = layout(args, repo, name)
+    session_name, window_name = f'ws-{name}', slug
     with locked(common):
         validate_tree(repo, common, tree, branch)
         owner = str(common)
@@ -232,7 +247,9 @@ def main():
     for command, func in [('new-worktree', new_tree), ('remove-worktree', remove_tree), ('session', session)]:
         p = sub.add_parser(command)
         p.add_argument('--repo', default='.', help='Non-bare Git repository path')
-        p.add_argument('--issue', required=True, type=issue_number)
+        target_group = p.add_mutually_exclusive_group(required=True)
+        target_group.add_argument('--issue', type=issue_number, help='GitHub Issue number (positive integer)')
+        target_group.add_argument('--name', type=task_name, help='Task or review workspace name (alphanumeric, hyphens, underscores)')
         p.add_argument('--root', default=str(Path.home() / 'worktrees'), help='Parent root, outside source repo')
         if command == 'session':
             p.add_argument('--agent', default='agy', help='Single Linux executable name/path; no shell command')

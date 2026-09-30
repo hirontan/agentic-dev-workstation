@@ -39,9 +39,10 @@ class WorktreeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return result.stdout.strip()
 
-    def cli(self, command, *extra, issue='123', repo=None, env=None):
+    def cli(self, command, *extra, issue='123', name=None, repo=None, env=None):
+        target = ['--name', name] if name else (['--issue', issue] if issue else [])
         return execute([sys.executable, CLI, command, '--repo', repo or self.repo,
-                        '--root', self.root, '--issue', issue, *extra], env=env)
+                        '--root', self.root, *target, *extra], env=env)
 
     def make_tree(self, issue='123'):
         result = self.cli('new-worktree', '--base', 'main', issue=issue)
@@ -56,6 +57,25 @@ class WorktreeTests(unittest.TestCase):
         (tree / 'README.md').write_text('Agent change\n')
         self.assertEqual((self.repo / 'README.md').read_text(), 'Initial\n')
         self.assertEqual(self.g('branch', '--show-current', repo=tree), 'agent/issue-123')
+
+    def test_name_target_and_validation(self):
+        result = self.cli('new-worktree', '--base', 'main', name='review-feature')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        tree = Path(result.stdout.splitlines()[0].split(' ', 1)[1])
+        self.assertEqual(self.g('branch', '--show-current', repo=tree), 'agent/review-feature')
+        self.assertEqual(tree.name, 'review-feature')
+        second = self.cli('new-worktree', '--base', 'main', name='review-feature')
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertIn('REUSED', second.stdout)
+        removed = self.cli('remove-worktree', '--base', 'main', name='review-feature')
+        self.assertEqual(removed.returncode, 0, removed.stderr)
+        self.assertIn('REMOVED', removed.stdout)
+        for bad in ['feature/xyz', 'review 123', 'name;rm', '../escape']:
+            res = self.cli('new-worktree', '--base', 'main', name=bad)
+            self.assertNotEqual(res.returncode, 0)
+        both = execute([sys.executable, CLI, 'new-worktree', '--repo', self.repo,
+                        '--root', self.root, '--issue', '123', '--name', 'review-feature', '--base', 'main'])
+        self.assertNotEqual(both.returncode, 0)
 
     def test_issue_validation(self):
         for bad in ['0', '-1', '123; touch injected', '1/../../x', '01', 'abc']:

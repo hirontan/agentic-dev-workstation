@@ -10,6 +10,7 @@
 |---|---|---|
 | **準備** | `cd /path/to/your-project`<br>`git fetch origin` | 対象のGitリポジトリへ移動し、最新情報を取得 |
 | **作業場所の作成** | `workstation new-worktree --issue 106` | ブランチ `agent/issue-106` と専用ディレクトリを自動作成 |
+| **レビュー場所の作成** | `workstation new-worktree --name review-sync --base origin/chore/branch` | 既存リモートブランチを元にしたレビュー用環境を作成 |
 | **セッション起動** | `workstation session --issue 106 --agent agy` | 左右2分割（左: Agent / 右: レビューシェル）でtmux起動 |
 | **接続** | `tmux attach -t ws-<リポジトリ名>-<id>` | 作成されたtmuxセッションへ接続 |
 | **指示出し** | AgentプロンプトにIssue本文・受入条件を入力 | 左ペインのAgent（`agy`）へ実装を依頼 |
@@ -145,15 +146,45 @@ workstation remove-worktree --issue 106
 
 ---
 
-## 4. よくあるエラーと対処法
+## 4. 既存ブランチのレビューや実験（`--name` オプション）
 
-### Q1. `ERROR: Path is not the registered worktree for this Issue branch.`
-- **原因**: 先に `workstation new-worktree --issue <番号>` を実行していないか、コマンド入力時のハイフンが1つ（`-issue`）になっていたためworktreeが未作成です。
-- **対処**: まず `workstation new-worktree --issue <番号>` を実行してから、`session` を起動してください。
+GitHubにすでに上がっているリモートブランチ（PRブランチやDependabotブランチなど）を手元でレビュー・検証したい場合は、`--issue` の代わりに **`--name`** と **`--base`** を指定します。
+
+### 手順例: リモートブランチをレビューする
+
+```bash
+cd /path/to/your-project
+git fetch origin
+
+# 1. 既存リモートブランチをベースに、レビュー用worktreeを作成
+workstation new-worktree --name review-release --base origin/chore/release-version-sync-v0.3.60
+
+# 2. セッションを起動（Agentにレビューさせたり、右ペインでテスト実行）
+workstation session --name review-release --agent agy
+tmux attach -t ws-<リポジトリ名>-<id>
+```
+
+- **安全な分離**: `agent/review-release` という独立した作業ブランチが作られるため、元のリモートブランチに影響を与えずに安全にテスト・動作確認できます。
+- **Agentの活用**: 左ペインのAgentに「このブランチの変更点とmainの差分を確認し、潜在的な問題点がないかレビューして」と依頼できます。
+- **後片付け**: レビュー完了後、元のリポジトリで安全に削除します：
+  ```bash
+  cd /path/to/your-project
+  workstation remove-worktree --name review-release --base origin/chore/release-version-sync-v0.3.60
+  ```
+
+※技術検証（スパイク）やIssue番号のない作業でも、`workstation new-worktree --name spike-perf` のように名前をつけて作業場所を立ち上げることができます（名前は英数字、ハイフン、アンダースコアが利用可能）。
+
+---
+
+## 5. よくあるエラーと対処法
+
+### Q1. `ERROR: Path is not the registered worktree for this branch.`
+- **原因**: 先に `workstation new-worktree` を実行していないか、コマンド入力時のハイフンが1つ（`-issue` や `-name`）になっていたためworktreeが未作成です。
+- **対処**: まず `workstation new-worktree --issue <番号>`（または `--name <名前>`）を実行してから、`session` を起動してください。
 
 ### Q2. `error: argument --issue: Issue must be a positive number`
 - **原因**: `--issue` にブランチ名文字列（例: `feat/xxx`）を指定しています。
-- **対処**: `--issue` には数字（Issue番号、例: `106`）のみを指定してください。
+- **対処**: Issue番号で管理する場合は数字（例: `106`）を指定し、任意の名前で作業したい場合は `--name <名前>`（例: `--name benchmark-tests`）を使用してください。
 
 ### Q3. `CONFLICT preserved ... (merge manually)`
 - **原因**: bootstrap再実行時に、リポジトリ側のテンプレートと既存設定ファイルの内容に差分があるため、既存設定が上書きされず保護されました。
