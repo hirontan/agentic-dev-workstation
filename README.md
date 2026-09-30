@@ -26,11 +26,12 @@ GitHubへリポジトリを作成・公開する操作は含みません。
 
 ## 最初に読む
 
-1. [全体像](docs/00_OVERVIEW.md)
-2. [Architecture](docs/01_ARCHITECTURE.md)
-3. [Bootstrap方針](docs/13_BOOTSTRAP_POLICY.md)
-4. [Windows](docs/02_WINDOWS_HOST.md) → [WSL2](docs/03_WSL2.md) または [macOS](docs/16_MACOS_HOST.md)
-5. [Antigravity](docs/06_ANTIGRAVITY.md) → [最初のIssue](examples/tmux-agent-workflow.md)
+1. **[使い方ガイド（実践ワークフロー）](docs/17_USER_GUIDE.md)**
+2. [全体像](docs/00_OVERVIEW.md)
+3. [Architecture](docs/01_ARCHITECTURE.md)
+4. [Bootstrap方針](docs/13_BOOTSTRAP_POLICY.md)
+5. [Windows](docs/02_WINDOWS_HOST.md) → [WSL2](docs/03_WSL2.md) または [macOS](docs/16_MACOS_HOST.md)
+6. [Antigravity](docs/06_ANTIGRAVITY.md) → [最初のIssue](examples/tmux-agent-workflow.md)
 
 ## Quick start
 
@@ -105,7 +106,7 @@ CLIはIssueの取得・自動送信・PR作成・mergeを行いません。
 
 ## ディレクトリと運用
 
-[ディレクトリ構成](docs/14_REPOSITORY_STRUCTURE.md) / [日常運用](docs/08_AGENT_WORKFLOW.md) / [macOS環境](docs/16_MACOS_HOST.md) /
+[使い方ガイド](docs/17_USER_GUIDE.md) / [ディレクトリ構成](docs/14_REPOSITORY_STRUCTURE.md) / [日常運用](docs/08_AGENT_WORKFLOW.md) / [macOS環境](docs/16_MACOS_HOST.md) /
 [Security](docs/10_SECURITY.md) / [Troubleshooting](docs/11_TROUBLESHOOTING.md) /
 [Migration](docs/12_MIGRATION.md) / [Roadmap](ROADMAP.md) / [検証結果](VALIDATION.md)
 
