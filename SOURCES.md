@@ -12,6 +12,7 @@
 | VS Code WSL | https://code.visualstudio.com/docs/remote/wsl | Windows IDEからWSLへ接続 |
 | Git worktree | https://git-scm.com/docs/git-worktree | worktreeの作成/削除と共有Git |
 | tmux | https://github.com/tmux/tmux/wiki/Getting-Started | session/windowとdetach/attach |
+| Homebrew | https://brew.sh | macOS base CLIパッケージ導入 |
 | Antigravity CLI install/auth | https://antigravity.google/docs/cli/install/ | Linux installer、配布先、手動login |
 | Antigravity settings | https://antigravity.google/docs/settings?tab=cli | renderingと権限の確認方針 |
 | Antigravity best practices | https://antigravity.google/docs/cli/best-practices | root rulesを読ませる方針 |

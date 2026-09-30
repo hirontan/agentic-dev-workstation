@@ -8,3 +8,4 @@
 - [ADR-0006 — PRと人間レビューを統合条件にする](0006-human-review-before-merge.md)
 - [ADR-0007 — AGENTSと運用の正本をAgentから独立させる](0007-agent-independent-core.md)
 - [ADR-0008 — 非破壊bootstrapと明示apply](0008-non-destructive-bootstrap.md)
+- [ADR-0009 — macOSホスト環境をサポートする](0009-support-macos-host.md)

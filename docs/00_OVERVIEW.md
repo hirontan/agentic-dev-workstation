@@ -2,7 +2,7 @@
 
 ## Goal
 
-新しいWindows PCでも開発環境を再構築し、Issue単位で複数のCoding Agentを動かす。
+新しいWindows PCやMacでも開発環境を再構築し、Issue単位で複数のCoding Agentを動かす。
 特定のアプリケーションに依存せず、作業環境と運用方法を一つのリポジトリへ残す。
 
 ## 管理するもの

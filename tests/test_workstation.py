@@ -152,6 +152,21 @@ class WorktreeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('No changes', result.stdout)
 
+    def test_bootstrap_macos_default_is_plan(self):
+        result = execute(['bash', ROOT / 'bootstrap/macos/setup.sh'])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('No changes', result.stdout)
+
+    def test_bootstrap_macos_refuses_non_darwin_apply(self):
+        if sys.platform != 'darwin':
+            result = execute(['bash', ROOT / 'bootstrap/macos/setup.sh', '--apply'])
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('macOS (Darwin) required', result.stderr)
+
+    def test_doctor_platform_output(self):
+        result = execute([sys.executable, CLI, 'doctor'])
+        self.assertIn('detected:', result.stdout)
+
     @unittest.skipUnless(shutil.which('tmux'), 'Real tmux not installed')
     def test_real_tmux_launch_and_no_duplicate_agent(self):
         tree = self.make_tree()
