@@ -86,7 +86,7 @@ def records(repo):
 def validate_tree(repo, common, tree, branch):
     record = records(repo).get(str(tree))
     if not record or record.get('branch') != f'refs/heads/{branch}':
-        raise Failure('Path is not the registered worktree for this Issue branch.')
+        raise Failure(f'Path is not the registered worktree for this Issue branch ({branch}). Run \'workstation new-worktree --issue <number>\' first.')
     if not tree.is_dir():
         raise Failure('Registered worktree is missing. Inspect git worktree list/prune manually.')
     actual = repository(tree)[1]
