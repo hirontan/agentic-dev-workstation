@@ -1,0 +1,9 @@
+# git identity/credential helperは含めない。導入はdocs/04参照。
+[init]
+    defaultBranch = main
+[fetch]
+    prune = true
+[pull]
+    rebase = false
+[rerere]
+    enabled = true

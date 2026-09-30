@@ -1,0 +1,7 @@
+# 32GB RAM程度のPCの調整例。ホスト容量に合わせて編集する。
+# WSL Settingsまたは%UserProfile%\.wslconfigへ手動で反映する。
+[wsl2]
+memory=12GB
+processors=6
+swap=4GB
+localhostForwarding=true

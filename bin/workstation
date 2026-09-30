@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Resolve symlink installed at ~/.local/bin/workstation.
+entry=$(readlink -f -- "${BASH_SOURCE[0]}")
+repo_dir=$(cd -- "$(dirname -- "$entry")/.." && pwd -P)
+exec python3 "$repo_dir/scripts/workstation.py" "$@"
