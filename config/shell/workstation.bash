@@ -1,4 +1,4 @@
-# Ubuntu Bash用。既存PATHとの重複を避ける。
+# Bash用。既存PATHとの重複を避ける。
 case ":$PATH:" in
     *":$HOME/.local/bin:"*) ;;
     *) export PATH="$HOME/.local/bin:$PATH" ;;

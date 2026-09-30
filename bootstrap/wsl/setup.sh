@@ -49,6 +49,7 @@ safe_copy() {
 safe_copy "$repo_dir/config/tmux/tmux.conf" "$HOME/.tmux.conf"
 safe_copy "$repo_dir/config/git/gitconfig" "$HOME/.config/agentic-dev-workstation/gitconfig"
 safe_copy "$repo_dir/config/shell/workstation.bash" "$HOME/.config/agentic-dev-workstation/workstation.bash"
+safe_copy "$repo_dir/config/shell/workstation.zsh" "$HOME/.config/agentic-dev-workstation/workstation.zsh"
 cli_target="$HOME/.local/bin/workstation"
 if [[ -L $cli_target ]] && [[ $(readlink "$cli_target") == "$repo_dir/bin/workstation" ]]; then
     echo 'UNCHANGED workstation symlink'
@@ -62,18 +63,33 @@ else
 fi
 # HOME must expand when the user's shell starts, not while writing the source line.
 # shellcheck disable=SC2016
-source_line='[ -f "$HOME/.config/agentic-dev-workstation/workstation.bash" ] && source "$HOME/.config/agentic-dev-workstation/workstation.bash"'
-if [[ -L $HOME/.bashrc ]]; then
-    echo 'CONFLICT preserved symlinked .bashrc; add source line manually.' >&2
-    conflicts=$((conflicts + 1))
-elif [[ -e $HOME/.bashrc && ! -f $HOME/.bashrc ]]; then
-    echo 'CONFLICT .bashrc is not a regular file.' >&2
-    conflicts=$((conflicts + 1))
-elif ! rg -Fqx "$source_line" "$HOME/.bashrc" 2>/dev/null; then
-    printf '\n# agentic-dev-workstation\n%s\n' "$source_line" >> "$HOME/.bashrc"
+source_line_bash='[ -f "$HOME/.config/agentic-dev-workstation/workstation.bash" ] && source "$HOME/.config/agentic-dev-workstation/workstation.bash"'
+# shellcheck disable=SC2016
+source_line_zsh='[ -f "$HOME/.config/agentic-dev-workstation/workstation.zsh" ] && source "$HOME/.config/agentic-dev-workstation/workstation.zsh"'
+
+add_shell_source() {
+    local target_file=$1 source_line=$2 shell_name=$3
+    if [[ -L $target_file ]]; then
+        echo "CONFLICT preserved symlinked $shell_name; add source line manually." >&2
+        conflicts=$((conflicts + 1))
+    elif [[ -e $target_file && ! -f $target_file ]]; then
+        echo "CONFLICT $shell_name is not a regular file." >&2
+        conflicts=$((conflicts + 1))
+    elif [[ -f $target_file ]]; then
+        if ! rg -Fqx "$source_line" "$target_file" 2>/dev/null; then
+            printf '\n# agentic-dev-workstation\n%s\n' "$source_line" >> "$target_file"
+        fi
+    elif [[ $shell_name == ".bashrc" ]] || [[ $shell_name == ".zshrc" && ("${SHELL:-}" == *"zsh"* || -f "$HOME/.zshrc") ]]; then
+        printf '# agentic-dev-workstation\n%s\n' "$source_line" > "$target_file"
+    fi
+}
+
+add_shell_source "$HOME/.bashrc" "$source_line_bash" ".bashrc"
+if [[ -f $HOME/.zshrc || "${SHELL:-}" == *"zsh"* ]]; then
+    add_shell_source "$HOME/.zshrc" "$source_line_zsh" ".zshrc"
 fi
 umask 077
 dpkg-query -W -f='${Package}\t${Version}\n' "${packages[@]}" \
     > "$HOME/.local/state/agentic-dev-workstation/packages.tsv"
-printf 'Finished; conflicts: %s. Open a new Bash or source ~/.bashrc.\n' "$conflicts"
+printf 'Finished; conflicts: %s. Open a new terminal or source your shell config (~/.bashrc or ~/.zshrc).\n' "$conflicts"
 (( conflicts == 0 )) || exit 2
