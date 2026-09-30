@@ -44,12 +44,25 @@ def task_name(value):
     return value
 
 
+def branch_name(value):
+    if not re.fullmatch(r'[a-zA-Z0-9._/-]{1,100}', value):
+        raise argparse.ArgumentTypeError('Branch name contains invalid characters.')
+    if value.startswith('/') or value.endswith('/') or '//' in value:
+        raise argparse.ArgumentTypeError('Branch name cannot start or end with a slash, or contain consecutive slashes.')
+    if '..' in value or value.startswith('.') or value.endswith('.'):
+        raise argparse.ArgumentTypeError('Branch name cannot contain ".." or start/end with dot.')
+    return value
+
+
 def target_identity(args):
+    if getattr(args, 'branch', None):
+        slug = re.sub(r'[^a-zA-Z0-9_-]', '-', args.branch).strip('-')
+        return slug, args.branch
     if getattr(args, 'name', None):
         return args.name, f'agent/{args.name}'
     if getattr(args, 'issue', None):
         return f'issue-{args.issue}', f'agent/issue-{args.issue}'
-    raise Failure('Either --issue or --name is required.')
+    raise Failure('Either --issue, --name, or --branch is required.')
 
 
 def repository(path):
@@ -121,6 +134,19 @@ def new_tree(args):
         if tree.exists() or tree.is_symlink():
             validate_tree(repo, common, tree, branch)
             print(f'REUSED {tree}')
+            return
+        if getattr(args, 'branch', None):
+            local_exists = git(repo, 'show-ref', '--verify', f'refs/heads/{branch}', check=False).returncode == 0
+            remote_exists = False
+            if not local_exists:
+                remote_refs = git(repo, 'for-each-ref', f'refs/remotes/*/{branch}', '--format=%(refname)').stdout.strip()
+                remote_exists = bool(remote_refs)
+            if not local_exists and not remote_exists:
+                raise Failure(f'Branch {branch} does not exist locally or in remotes. Fetch first or create it.')
+            tree.parent.mkdir(parents=True, exist_ok=True)
+            git(repo, 'worktree', 'add', tree, branch)
+            head_commit = git(tree, 'rev-parse', 'HEAD').stdout.strip()
+            print(f'CREATED {tree}\nBRANCH {branch}\nHEAD {head_commit[:12]}')
             return
         if git(repo, 'show-ref', '--verify', f'refs/heads/{branch}', check=False).returncode == 0:
             raise Failure('Workspace branch already exists. Inspect it manually; no branch was reset.')
@@ -250,6 +276,7 @@ def main():
         target_group = p.add_mutually_exclusive_group(required=True)
         target_group.add_argument('--issue', type=issue_number, help='GitHub Issue number (positive integer)')
         target_group.add_argument('--name', type=task_name, help='Task or review workspace name (alphanumeric, hyphens, underscores)')
+        target_group.add_argument('--branch', type=branch_name, help='Existing local or remote Git branch name (no new branch created)')
         p.add_argument('--root', default=str(Path.home() / 'worktrees'), help='Parent root, outside source repo')
         if command == 'session':
             p.add_argument('--agent', default='agy', help='Single Linux executable name/path; no shell command')

@@ -86,12 +86,13 @@ Antigravityは[公式インストーラを確認して導入](docs/06_ANTIGRAVIT
 ```bash
 cd ~/src/your-project
 git fetch origin
-workstation new-worktree --issue 123
+workstation new-worktree --issue 123  # または既存ブランチの --branch <名前> / 任意タスクの --name <名前>
 workstation session --issue 123 --agent agy
 # 表示されたtmux attachコマンドで接続し、Issueの指示を入力する
 ```
 
 既定の作成元は`origin/main`です。GitHub未登録のローカル環境では`--base main`を指定できます。
+既存のブランチを直接レビュー・開発する場合は `--branch <ブランチ名>` でそのままチェックアウトできます。
 Issue本文は[テンプレート](templates/AGENT_TASK_PROMPT.md)に沿って渡します。
 CLIはIssueの取得・自動送信・PR作成・mergeを行いません。
 

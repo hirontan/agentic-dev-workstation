@@ -9,14 +9,15 @@
 | フェーズ | 実行コマンド | 説明 |
 |---|---|---|
 | **準備** | `cd /path/to/your-project`<br>`git fetch origin` | 対象のGitリポジトリへ移動し、最新情報を取得 |
-| **作業場所の作成** | `workstation new-worktree --issue 106` | ブランチ `agent/issue-106` と専用ディレクトリを自動作成 |
-| **レビュー場所の作成** | `workstation new-worktree --name review-sync --base origin/chore/branch` | 既存リモートブランチを元にしたレビュー用環境を作成 |
-| **セッション起動** | `workstation session --issue 106 --agent agy` | 左右2分割（左: Agent / 右: レビューシェル）でtmux起動 |
+| **新規作業場所の作成** | `workstation new-worktree --issue 106` | ブランチ `agent/issue-106` と専用ディレクトリを自動作成 |
+| **既存ブランチの開発・レビュー** | `workstation new-worktree --branch feat/login` | 新規ブランチを作らず、既存ブランチそのものをチェックアウト |
+| **派生ブランチでのレビュー/実験** | `workstation new-worktree --name review-sync --base origin/chore/branch` | 元ブランチを汚さず `agent/<名前>` で隔離環境を作成 |
+| **セッション起動** | `workstation session --branch feat/login --agent agy` | 左右2分割（左: Agent / 右: レビューシェル）でtmux起動 |
 | **接続** | `tmux attach -t ws-<リポジトリ名>-<id>` | 作成されたtmuxセッションへ接続 |
-| **指示出し** | AgentプロンプトにIssue本文・受入条件を入力 | 左ペインのAgent（`agy`）へ実装を依頼 |
+| **指示出し** | AgentプロンプトにIssue本文・受入条件を入力 | 左ペインのAgent（`agy`）へ実装やレビューを依頼 |
 | **一時離脱 (並列化)** | `Ctrl-b` → `d` | Agentのバックグラウンド実行を維持したままシェルへ戻る |
-| **確認・PR** | 右ペインでテスト・差分確認<br>`git push -u origin agent/issue-106`<br>`gh pr create` | 右ペインのシェルを使ってレビューとPR作成 |
-| **後片付け** | `git fetch origin`<br>`workstation remove-worktree --issue 106` | PRマージ後、元のリポジトリでworktreeを安全に削除 |
+| **確認・PR/Push** | 右ペインでテスト・差分確認<br>`git push` または `gh pr create` | 右ペインのシェルを使ってレビュー、コミット、プッシュ |
+| **後片付け** | `git fetch origin`<br>`workstation remove-worktree --branch feat/login` | 作業完了後、元のリポジトリでworktreeを安全に削除 |
 
 ---
 
@@ -146,50 +147,81 @@ workstation remove-worktree --issue 106
 
 ---
 
-## 4. 既存ブランチのレビューや実験（`--name` オプション）
+## 4. 既存ブランチのレビュー・開発（`--branch` オプション）
 
-GitHubにすでに上がっているリモートブランチ（PRブランチやDependabotブランチなど）を手元でレビュー・検証したい場合は、`--issue` の代わりに **`--name`** と **`--base`** を指定します。
+「新しく別のブランチ（`agent/...`）を作るのではなく、**すでに存在するブランチをそのままチェックアウトしてレビューや開発を継続したい**」という場合は、**`--branch <ブランチ名>`** を指定します。
 
-### 手順例: リモートブランチをレビューする
+ローカルに存在するブランチはもちろん、リモート（`origin`）にしか存在しないPRブランチ等も自動で追跡ブランチとしてチェックアウトされます。
+
+### 手順例: 既存ブランチをチェックアウトして開発・レビューする
 
 ```bash
 cd /path/to/your-project
 git fetch origin
 
-# 1. 既存リモートブランチをベースに、レビュー用worktreeを作成
+# 1. 既存ブランチを直接チェックアウト（新規ブランチは作られません）
+workstation new-worktree --branch chore/release-version-sync-v0.3.60
+
+# 2. 左右2分割セッションを起動（左: Agent / 右: レビューシェル）
+workstation session --branch chore/release-version-sync-v0.3.60 --agent agy
+tmux attach -t ws-<リポジトリ名>-<id>
+```
+
+- **直接コミット・プッシュ可能**: 新規の派生ブランチではなく元のブランチそのものがチェックアウトされているため、Agentに指示した修正や右ペインでの変更が直接そのブランチに乗ります。そのまま `git push` すれば既存のPRへ反映されます。
+- **配置先とウィンドウ名**: スラッシュはパス名として安全なようにハイフン置換されます（例: ディレクトリ `chore-release-version-sync-v0.3.60`、tmuxウィンドウ `chore-release-version-sync-v0.3.60`）。
+- **後片付け**: 作業完了後、元のリポジトリで安全にworktreeを削除します（未マージのコミットや未コミットの変更がある場合は保護されます）：
+  ```bash
+  cd /path/to/your-project
+  workstation remove-worktree --branch chore/release-version-sync-v0.3.60 --base chore/release-version-sync-v0.3.60
+  ```
+
+---
+
+## 5. 派生ブランチでのレビューやスパイク実験（`--name` オプション）
+
+元のブランチに影響を与えず、「**既存リモートブランチをベースにした安全な隔離環境を作ってレビュー・検証したい**」場合や、「Issue番号のない技術検証（スパイク）」を行う場合は、**`--name <名前>`** と **`--base <ref>`** を指定します。
+
+### 手順例: 元ブランチを汚さずにレビューする
+
+```bash
+cd /path/to/your-project
+git fetch origin
+
+# 1. 既存リモートブランチをベースに、レビュー専用の派生ブランチを作成
 workstation new-worktree --name review-release --base origin/chore/release-version-sync-v0.3.60
 
-# 2. セッションを起動（Agentにレビューさせたり、右ペインでテスト実行）
+# 2. セッションを起動
 workstation session --name review-release --agent agy
 tmux attach -t ws-<リポジトリ名>-<id>
 ```
 
-- **安全な分離**: `agent/review-release` という独立した作業ブランチが作られるため、元のリモートブランチに影響を与えずに安全にテスト・動作確認できます。
-- **Agentの活用**: 左ペインのAgentに「このブランチの変更点とmainの差分を確認し、潜在的な問題点がないかレビューして」と依頼できます。
-- **後片付け**: レビュー完了後、元のリポジトリで安全に削除します：
+- **安全な隔離**: `agent/review-release` という新しいブランチが作られるため、いくらコードを書き換えても元のブランチは変更されません。
+- **後片付け**:
   ```bash
   cd /path/to/your-project
   workstation remove-worktree --name review-release --base origin/chore/release-version-sync-v0.3.60
   ```
 
-※技術検証（スパイク）やIssue番号のない作業でも、`workstation new-worktree --name spike-perf` のように名前をつけて作業場所を立ち上げることができます（名前は英数字、ハイフン、アンダースコアが利用可能）。
-
 ---
 
-## 5. よくあるエラーと対処法
+## 6. よくあるエラーと対処法
 
 ### Q1. `ERROR: Path is not the registered worktree for this branch.`
-- **原因**: 先に `workstation new-worktree` を実行していないか、コマンド入力時のハイフンが1つ（`-issue` や `-name`）になっていたためworktreeが未作成です。
-- **対処**: まず `workstation new-worktree --issue <番号>`（または `--name <名前>`）を実行してから、`session` を起動してください。
+- **原因**: 先に `workstation new-worktree` を実行していないか、コマンド入力時のハイフンが1つ（`-branch` や `-issue`）になっていたためworktreeが未作成です。
+- **対処**: まず `workstation new-worktree --branch <ブランチ名>`（または `--issue` / `--name`）を実行してから、`session` を起動してください。
 
 ### Q2. `error: argument --issue: Issue must be a positive number`
 - **原因**: `--issue` にブランチ名文字列（例: `feat/xxx`）を指定しています。
-- **対処**: Issue番号で管理する場合は数字（例: `106`）を指定し、任意の名前で作業したい場合は `--name <名前>`（例: `--name benchmark-tests`）を使用してください。
+- **対処**: 既存のブランチを触りたい場合は **`--branch <ブランチ名>`** を、Issue番号で管理する場合は数字（例: `106`）を、任意の名前で新規ブランチを作りたい場合は **`--name <名前>`** を使用してください。
 
-### Q3. `CONFLICT preserved ... (merge manually)`
+### Q3. `ERROR: Branch xxx does not exist locally or in remotes.`
+- **原因**: 指定したブランチがローカルにもリモート（`origin`）にも見つかりません。
+- **対処**: `git fetch origin` を実行してリモートの最新ブランチを取得しているか、ブランチ名のスペルを確認してください。
+
+### Q4. `CONFLICT preserved ... (merge manually)`
 - **原因**: bootstrap再実行時に、リポジトリ側のテンプレートと既存設定ファイルの内容に差分があるため、既存設定が上書きされず保護されました。
 - **対処**: 意図した保護動作です。最新テンプレートに統一したい場合は、手動でファイルを更新または削除して再実行してください。
 
-### Q4. `workstation: command not found`
+### Q5. `workstation: command not found`
 - **原因**: 新しいターミナルを開いていないか、シェルの設定ファイルが再読み込みされていません。
 - **対処**: お使いのシェルに合わせて `source ~/.zshrc`（または `source ~/.bashrc`）を実行してください。
