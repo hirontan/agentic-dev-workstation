@@ -9,10 +9,10 @@
 ## 実装
 
 1. `git fetch origin`後、worktreeを作成する。
-2. tmux windowでAgentを起動する。
+2. `workstation session`でtmux windowを起動する（左65%がAgent、右35%がレビュー・統制シェル）。
 3. AGENTS.mdとIssueを渡し、範囲と検証方法の理解を確認する。
 4. Agentは実装・test・差分説明を行う。
-5. 人間は受入条件と実結果を照合する。
+5. 人間は受入条件と実結果を照合する（右ペインのシェルで`git diff`や追加testを実行可能）。
 
 shared schemaやAPI契約に依存するIssueは、土台を先にmergeする。
 独立したUI、docs、test改善等を同時に実施しやすい単位として扱う。

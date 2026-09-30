@@ -185,6 +185,8 @@ def session(args):
             run(['tmux', 'set-option', '-w', '-t', window_id, 'automatic-rename', 'off'])
             run(['tmux', 'set-option', '-w', '-t', window_id, '@workstation-tree', str(tree)])
             run(['tmux', 'set-option', '-w', '-t', window_id, '@workstation-agent', agent])
+            if args.split:
+                run(['tmux', 'split-window', '-d', '-t', window_id, '-h', '-c', tree, '-l', '35%'])
             print(f'LAUNCHED {args.agent} in {tree}')
     print(f'SESSION {session_name}\nATTACH: tmux attach -t {session_name}')
 
@@ -234,6 +236,8 @@ def main():
         p.add_argument('--root', default=str(Path.home() / 'worktrees'), help='Parent root, outside source repo')
         if command == 'session':
             p.add_argument('--agent', default='agy', help='Single Linux executable name/path; no shell command')
+            p.add_argument('--split', action=argparse.BooleanOptionalAction, default=True,
+                           help='Split window horizontally with a review shell (default: true)')
         else:
             p.add_argument('--base', default='origin/main', help='Existing commit reference; no implicit fetch')
         p.set_defaults(func=func)

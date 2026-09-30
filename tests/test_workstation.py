@@ -202,6 +202,8 @@ class WorktreeTests(unittest.TestCase):
             session_name = [line[8:] for line in result.stdout.splitlines() if line.startswith('SESSION ')][0]
             paths = execute(['tmux', 'list-panes', '-a', '-F', '#{pane_current_path}'], env=environment)
             self.assertIn(str(tree), paths.stdout)
+            issue_panes = execute(['tmux', 'list-panes', '-t', f'{session_name}:issue-123'], env=environment)
+            self.assertEqual(len(issue_panes.stdout.strip().splitlines()), 2)
             # Unknown session ownership must stop reuse.
             execute(['tmux', 'set-option', '-t', session_name, '@workstation-owner', 'other'], env=environment)
             self.assertNotEqual(self.cli('session', '--agent', 'test-agent', env=environment).returncode, 0)
