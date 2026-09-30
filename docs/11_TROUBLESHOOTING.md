@@ -4,7 +4,7 @@
 |---|---|---|
 | WSL導入失敗 | virtualization、Windows version、管理権限 | Microsoft公式WSL troubleshooting |
 | Linuxコマンドが遅い | repositoryが`/mnt/c`か | Linux側`~/src`へcloneし直す |
-| `workstation`が見つからない | PATH、symlink | `source ~/.bashrc`、bootstrap再実行 |
+| `workstation`が見つからない | PATH、symlink | `source ~/.bashrc`（Zshは`~/.zshrc`）、bootstrap再実行 |
 | `agy`がWindows binary | `command -v agy`、doctor | WSL側へLinux CLIを導入 |
 | `origin/main`がない | remote / default branch | `git fetch origin`、正しい`--base` |
 | worktree作成を拒否 | branch/pathの既存状態 | `git worktree list`、残存branchを確認 |

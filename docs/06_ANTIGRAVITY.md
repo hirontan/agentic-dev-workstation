@@ -9,7 +9,7 @@ Linux側の標準実行名は`agy`、公式配布先は`~/.local/bin/agy`。
 
 ## 導入
 
-WSLの通常ユーザーで公式インストーラをダウンロードし、内容を確認してから実行する。
+WSLまたはmacOSの通常ユーザーで公式インストーラをダウンロードし、内容を確認してから実行する。
 bootstrapに組み込まないため、再実行だけでAgentを更新することはない。
 
 ```bash
@@ -18,18 +18,18 @@ curl -fSL https://antigravity.google/cli/install.sh \
   -o ~/.local/share/agentic-dev-workstation/antigravity-install.sh
 less ~/.local/share/agentic-dev-workstation/antigravity-install.sh
 bash ~/.local/share/agentic-dev-workstation/antigravity-install.sh --skip-aliases --skip-path
-source ~/.bashrc
+source ~/.bashrc  # Zshの場合は source ~/.zshrc
 command -v agy
 ```
 
 公式側の配布URL・引数が変更されたら、公式手順を再確認して更新する。
-インストーラのhashを記録する場合は`sha256sum`を使う。hash記録だけで配布元の信頼性を証明しない。
+インストーラのhashを記録する場合は`sha256sum`（macOSは`shasum -a 256`）を使う。hash記録だけで配布元の信頼性を証明しない。
 
 ## 初回設定
 
 worktree内で`agy`を実行し、CLIの案内に従って本人がログインする。
 tmuxではInline renderingを選び、scrollbackと画面崩れを確認する。
-WSLのブラウザ/keyring連携が失敗したら、公式Auth/Troubleshootingを確認する。
+ブラウザ/keyring連携が失敗したら、公式Auth/Troubleshootingを確認する。
 認証tokenを貼り付けて共有したり、Windowsの認証cacheを手でコピーしたりしない。
 
 ## 料金とデータ

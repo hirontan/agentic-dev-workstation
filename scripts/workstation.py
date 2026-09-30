@@ -38,6 +38,33 @@ def issue_number(value):
     return value
 
 
+def task_name(value):
+    if not re.fullmatch(r'[a-zA-Z0-9_-]{1,50}', value):
+        raise argparse.ArgumentTypeError('Name must consist of alphanumeric characters, hyphens, or underscores (up to 50 characters).')
+    return value
+
+
+def branch_name(value):
+    if not re.fullmatch(r'[a-zA-Z0-9._/-]{1,100}', value):
+        raise argparse.ArgumentTypeError('Branch name contains invalid characters.')
+    if value.startswith('/') or value.endswith('/') or '//' in value:
+        raise argparse.ArgumentTypeError('Branch name cannot start or end with a slash, or contain consecutive slashes.')
+    if '..' in value or value.startswith('.') or value.endswith('.'):
+        raise argparse.ArgumentTypeError('Branch name cannot contain ".." or start/end with dot.')
+    return value
+
+
+def target_identity(args):
+    if getattr(args, 'branch', None):
+        slug = re.sub(r'[^a-zA-Z0-9_-]', '-', args.branch).strip('-')
+        return slug, args.branch
+    if getattr(args, 'name', None):
+        return args.name, f'agent/{args.name}'
+    if getattr(args, 'issue', None):
+        return f'issue-{args.issue}', f'agent/issue-{args.issue}'
+    raise Failure('Either --issue, --name, or --branch is required.')
+
+
 def repository(path):
     directory = Path(path).expanduser().resolve()
     if git(directory, 'rev-parse', '--is-bare-repository').stdout.strip() == 'true':
@@ -66,7 +93,8 @@ def layout(args, repo, name):
     primary = common.parent if common.name == '.git' else repo
     if any(root == item or item in root.parents for item in (repo, primary)):
         raise Failure('Worktree root must be outside the current repository.')
-    return root / name / f'issue-{args.issue}', f'agent/issue-{args.issue}'
+    slug, branch = target_identity(args)
+    return root / name / slug, branch, slug
 
 
 def records(repo):
@@ -86,7 +114,7 @@ def records(repo):
 def validate_tree(repo, common, tree, branch):
     record = records(repo).get(str(tree))
     if not record or record.get('branch') != f'refs/heads/{branch}':
-        raise Failure('Path is not the registered worktree for this Issue branch.')
+        raise Failure(f'Path is not the registered worktree for this branch ({branch}). Run \'workstation new-worktree\' first.')
     if not tree.is_dir():
         raise Failure('Registered worktree is missing. Inspect git worktree list/prune manually.')
     actual = repository(tree)[1]
@@ -101,14 +129,27 @@ def commit(repo, reference):
 
 def new_tree(args):
     repo, common, name = repository(args.repo)
-    tree, branch = layout(args, repo, name)
+    tree, branch, _slug = layout(args, repo, name)
     with locked(common):
         if tree.exists() or tree.is_symlink():
             validate_tree(repo, common, tree, branch)
             print(f'REUSED {tree}')
             return
+        if getattr(args, 'branch', None):
+            local_exists = git(repo, 'show-ref', '--verify', f'refs/heads/{branch}', check=False).returncode == 0
+            remote_exists = False
+            if not local_exists:
+                remote_refs = git(repo, 'for-each-ref', f'refs/remotes/*/{branch}', '--format=%(refname)').stdout.strip()
+                remote_exists = bool(remote_refs)
+            if not local_exists and not remote_exists:
+                raise Failure(f'Branch {branch} does not exist locally or in remotes. Fetch first or create it.')
+            tree.parent.mkdir(parents=True, exist_ok=True)
+            git(repo, 'worktree', 'add', tree, branch)
+            head_commit = git(tree, 'rev-parse', 'HEAD').stdout.strip()
+            print(f'CREATED {tree}\nBRANCH {branch}\nHEAD {head_commit[:12]}')
+            return
         if git(repo, 'show-ref', '--verify', f'refs/heads/{branch}', check=False).returncode == 0:
-            raise Failure('Issue branch already exists. Inspect it manually; no branch was reset.')
+            raise Failure('Workspace branch already exists. Inspect it manually; no branch was reset.')
         base = commit(repo, args.base)
         tree.parent.mkdir(parents=True, exist_ok=True)
         git(repo, 'worktree', 'add', '-b', branch, tree, base)
@@ -117,7 +158,7 @@ def new_tree(args):
 
 def remove_tree(args):
     repo, common, name = repository(args.repo)
-    tree, branch = layout(args, repo, name)
+    tree, branch, _slug = layout(args, repo, name)
     with locked(common):
         validate_tree(repo, common, tree, branch)
         primary = common.parent if common.name == '.git' else repo
@@ -149,8 +190,8 @@ def session(args):
         raise Failure('tmux is required.')
     agent = find_agent(args.agent)
     repo, common, name = repository(args.repo)
-    tree, branch = layout(args, repo, name)
-    session_name, window_name = f'ws-{name}', f'issue-{args.issue}'
+    tree, branch, slug = layout(args, repo, name)
+    session_name, window_name = f'ws-{name}', slug
     with locked(common):
         validate_tree(repo, common, tree, branch)
         owner = str(common)
@@ -185,6 +226,8 @@ def session(args):
             run(['tmux', 'set-option', '-w', '-t', window_id, 'automatic-rename', 'off'])
             run(['tmux', 'set-option', '-w', '-t', window_id, '@workstation-tree', str(tree)])
             run(['tmux', 'set-option', '-w', '-t', window_id, '@workstation-agent', agent])
+            if args.split:
+                run(['tmux', 'split-window', '-d', '-t', window_id, '-h', '-c', tree, '-l', '35%'])
             print(f'LAUNCHED {args.agent} in {tree}')
     print(f'SESSION {session_name}\nATTACH: tmux attach -t {session_name}')
 
@@ -230,10 +273,15 @@ def main():
     for command, func in [('new-worktree', new_tree), ('remove-worktree', remove_tree), ('session', session)]:
         p = sub.add_parser(command)
         p.add_argument('--repo', default='.', help='Non-bare Git repository path')
-        p.add_argument('--issue', required=True, type=issue_number)
+        target_group = p.add_mutually_exclusive_group(required=True)
+        target_group.add_argument('--issue', type=issue_number, help='GitHub Issue number (positive integer)')
+        target_group.add_argument('--name', type=task_name, help='Task or review workspace name (alphanumeric, hyphens, underscores)')
+        target_group.add_argument('--branch', type=branch_name, help='Existing local or remote Git branch name (no new branch created)')
         p.add_argument('--root', default=str(Path.home() / 'worktrees'), help='Parent root, outside source repo')
         if command == 'session':
             p.add_argument('--agent', default='agy', help='Single Linux executable name/path; no shell command')
+            p.add_argument('--split', action=argparse.BooleanOptionalAction, default=True,
+                           help='Split window horizontally with a review shell (default: true)')
         else:
             p.add_argument('--base', default='origin/main', help='Existing commit reference; no implicit fetch')
         p.set_defaults(func=func)

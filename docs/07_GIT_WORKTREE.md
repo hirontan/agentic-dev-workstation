@@ -8,12 +8,14 @@ git fetch origin
 workstation new-worktree --issue 123
 ```
 
-作成先: `~/worktrees/<repository>-<id>/issue-123`
-branch: `agent/issue-123`、base: `origin/main`。
-`--base main`、`--root <absolute-or-relative-path>`で変更できる。
-rootには対象repositoryの内側を指定できない。repository名/id/issueをさらに配下へ作る。
-同じIssueを再実行した場合は、repositoryとbranchが一致する既存worktreeを再利用する。
-同名branchだけ存在しworktreeがない場合は停止し、人間の確認を求める。
+作成先: `~/worktrees/<repository>-<id>/issue-123`（`--name` 指定時は `<repository>-<id>/<name>`、`--branch` 指定時は `<repository>-<id>/<slug>`）
+branch: `agent/issue-123`（`--name` 指定時は `agent/<name>`、`--branch` 指定時は既存ブランチそのものをチェックアウト）、base: `origin/main`。
+`--issue <番号>` の代わりに `--name <名前>` で任意のタスク名やレビュー環境を作成できる。
+また、`--branch <ブランチ名>` を指定すると、新規ブランチを作成せず、既存のローカルブランチまたはリモート追跡ブランチをそのままチェックアウトして開発・レビューできる（スラッシュはパス名安全のためハイフン置換される）。
+`--base <ref>`（ブランチ名、タグ、コミットハッシュ）、`--root <absolute-or-relative-path>`で変更できる。
+rootには対象repositoryの内側を指定できない。repository名/id/workspaceをさらに配下へ作る。
+同じIssue/名前/ブランチを再実行した場合は、repositoryとbranchが一致する既存worktreeを再利用する。
+同名branchだけ存在しworktreeがない場合は停止し、人間の確認を求める（`--branch` 指定時を除く）。
 同一repositoryのCLI操作はGit common directory内のflockで直列化する。
 
 ## 差分確認

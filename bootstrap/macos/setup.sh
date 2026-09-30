@@ -83,12 +83,14 @@ add_shell_source() {
 add_shell_source "$HOME/.zshrc" "$source_line_zsh" ".zshrc"
 if [[ -f $HOME/.bash_profile ]]; then
     add_shell_source "$HOME/.bash_profile" "$source_line_bash" ".bash_profile"
-else
+elif [[ -f $HOME/.bashrc ]]; then
     add_shell_source "$HOME/.bashrc" "$source_line_bash" ".bashrc"
+elif [[ "${SHELL:-}" == *"bash"* ]]; then
+    add_shell_source "$HOME/.bash_profile" "$source_line_bash" ".bash_profile"
 fi
 
 umask 077
-brew list --versions "${packages[@]}" \
-    > "$HOME/.local/state/agentic-dev-workstation/packages.tsv" 2>/dev/null || true
-printf 'Finished; conflicts: %s. Open a new terminal or source your shell config.\n' "$conflicts"
+brew list --versions "${packages[@]}" 2>/dev/null | tr ' ' '\t' \
+    > "$HOME/.local/state/agentic-dev-workstation/packages.tsv" || true
+printf 'Finished; conflicts: %s. Open a new terminal or source your shell config (~/.zshrc or ~/.bash_profile).\n' "$conflicts"
 (( conflicts == 0 )) || exit 2

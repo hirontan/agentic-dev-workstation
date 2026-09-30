@@ -4,7 +4,7 @@
 |---|---|
 | README.md | 入口、quick start、初期scope |
 | AGENTS.md | 本リポジトリの編集ルール |
-| docs/00〜16 | 設計、導入、運用、受入 |
+| docs/00〜17 | 設計、導入、運用、使い方、受入 |
 | architecture/ | topology / execution / workflow |
 | adr/ | 判断理由と代替案 |
 | bootstrap/windows/setup.ps1 | WSLのplan/apply |

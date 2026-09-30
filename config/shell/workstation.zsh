@@ -1,4 +1,4 @@
-# macOS / Zsh用。既存PATHとの重複を避ける。
+# Zsh用。既存PATHとの重複を避ける。
 case ":$PATH:" in
     *":$HOME/.local/bin:"*) ;;
     *) export PATH="$HOME/.local/bin:$PATH" ;;

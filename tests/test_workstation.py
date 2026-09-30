@@ -39,9 +39,17 @@ class WorktreeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return result.stdout.strip()
 
-    def cli(self, command, *extra, issue='123', repo=None, env=None):
+    def cli(self, command, *extra, issue='123', name=None, branch=None, repo=None, env=None):
+        if branch:
+            target = ['--branch', branch]
+        elif name:
+            target = ['--name', name]
+        elif issue:
+            target = ['--issue', issue]
+        else:
+            target = []
         return execute([sys.executable, CLI, command, '--repo', repo or self.repo,
-                        '--root', self.root, '--issue', issue, *extra], env=env)
+                        '--root', self.root, *target, *extra], env=env)
 
     def make_tree(self, issue='123'):
         result = self.cli('new-worktree', '--base', 'main', issue=issue)
@@ -56,6 +64,68 @@ class WorktreeTests(unittest.TestCase):
         (tree / 'README.md').write_text('Agent change\n')
         self.assertEqual((self.repo / 'README.md').read_text(), 'Initial\n')
         self.assertEqual(self.g('branch', '--show-current', repo=tree), 'agent/issue-123')
+
+    def test_name_target_and_validation(self):
+        result = self.cli('new-worktree', '--base', 'main', name='review-feature')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        tree = Path(result.stdout.splitlines()[0].split(' ', 1)[1])
+        self.assertEqual(self.g('branch', '--show-current', repo=tree), 'agent/review-feature')
+        self.assertEqual(tree.name, 'review-feature')
+        second = self.cli('new-worktree', '--base', 'main', name='review-feature')
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertIn('REUSED', second.stdout)
+        removed = self.cli('remove-worktree', '--base', 'main', name='review-feature')
+        self.assertEqual(removed.returncode, 0, removed.stderr)
+        self.assertIn('REMOVED', removed.stdout)
+        for bad in ['feature/xyz', 'review 123', 'name;rm', '../escape']:
+            res = self.cli('new-worktree', '--base', 'main', name=bad)
+            self.assertNotEqual(res.returncode, 0)
+        both = execute([sys.executable, CLI, 'new-worktree', '--repo', self.repo,
+                        '--root', self.root, '--issue', '123', '--name', 'review-feature', '--base', 'main'])
+        self.assertNotEqual(both.returncode, 0)
+
+    def test_branch_target_and_validation(self):
+        self.g('branch', 'feat/payment-flow')
+        result = self.cli('new-worktree', branch='feat/payment-flow')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        tree = Path(result.stdout.splitlines()[0].split(' ', 1)[1])
+        self.assertEqual(self.g('branch', '--show-current', repo=tree), 'feat/payment-flow')
+        self.assertEqual(tree.name, 'feat-payment-flow')
+        second = self.cli('new-worktree', branch='feat/payment-flow')
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertIn('REUSED', second.stdout)
+        removed = self.cli('remove-worktree', '--base', 'feat/payment-flow', branch='feat/payment-flow')
+        self.assertEqual(removed.returncode, 0, removed.stderr)
+        self.assertIn('REMOVED', removed.stdout)
+
+        # 2. リモートブランチ（DWIM追跡）のチェックアウト
+        origin_dir = self.base / 'remote.git'
+        execute(['git', 'init', '--bare', str(origin_dir)])
+        self.g('remote', 'add', 'origin', str(origin_dir))
+        self.g('push', '-u', 'origin', 'main')
+        self.g('push', 'origin', 'main:refs/heads/chore/sync-remote')
+        self.g('fetch', 'origin')
+
+        res_remote = self.cli('new-worktree', branch='chore/sync-remote')
+        self.assertEqual(res_remote.returncode, 0, res_remote.stderr)
+        tree_remote = Path(res_remote.stdout.splitlines()[0].split(' ', 1)[1])
+        self.assertEqual(self.g('branch', '--show-current', repo=tree_remote), 'chore/sync-remote')
+        self.assertEqual(tree_remote.name, 'chore-sync-remote')
+
+        res_missing = self.cli('new-worktree', branch='feat/missing-branch')
+        self.assertNotEqual(res_missing.returncode, 0)
+        self.assertIn('does not exist', res_missing.stderr)
+
+        for bad in ['../escape', 'feat//bad', '/leading', 'trailing/', 'feat name;rm', '.hidden', 'bad..branch']:
+            res = self.cli('new-worktree', branch=bad)
+            self.assertNotEqual(res.returncode, 0)
+
+        both1 = execute([sys.executable, CLI, 'new-worktree', '--repo', self.repo,
+                         '--root', self.root, '--issue', '123', '--branch', 'feat/payment-flow'])
+        self.assertNotEqual(both1.returncode, 0)
+        both2 = execute([sys.executable, CLI, 'new-worktree', '--repo', self.repo,
+                         '--root', self.root, '--name', 'my-task', '--branch', 'feat/payment-flow'])
+        self.assertNotEqual(both2.returncode, 0)
 
     def test_issue_validation(self):
         for bad in ['0', '-1', '123; touch injected', '1/../../x', '01', 'abc']:
@@ -202,6 +272,8 @@ class WorktreeTests(unittest.TestCase):
             session_name = [line[8:] for line in result.stdout.splitlines() if line.startswith('SESSION ')][0]
             paths = execute(['tmux', 'list-panes', '-a', '-F', '#{pane_current_path}'], env=environment)
             self.assertIn(str(tree), paths.stdout)
+            issue_panes = execute(['tmux', 'list-panes', '-t', f'{session_name}:issue-123'], env=environment)
+            self.assertEqual(len(issue_panes.stdout.strip().splitlines()), 2)
             # Unknown session ownership must stop reuse.
             execute(['tmux', 'set-option', '-t', session_name, '@workstation-owner', 'other'], env=environment)
             self.assertNotEqual(self.cli('session', '--agent', 'test-agent', env=environment).returncode, 0)
