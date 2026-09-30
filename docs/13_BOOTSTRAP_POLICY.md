@@ -25,6 +25,18 @@ WSL default versionを2へ設定し、指定distributionが未導入の場合だ
 一部conflictがあれば終了code 2。導入済みpackagesや作成済みdirectoryは残る。
 dry-runはapt、file作成、state更新を実行しない。
 
+## macOS
+
+1. macOS (Darwin) を確認し、通常ユーザー（非root）で実行することを確認する。
+2. Homebrewの存在を確認し、base packagesを導入する。
+3. `~/src`、`~/worktrees`、`~/.local/bin`等を作成する。
+4. templateと内容が一致する既存設定は維持し、異なる場合はconflictとして維持する。
+5. Zsh (`.zshrc`) および Bash (`.bashrc` / `.bash_profile`) へのsource行を重複なく追加し、workstationのsymlinkを作る。
+6. Homebrew package inventoryをprivate stateへ保存する。
+
+root権限でのHomebrew実行やOSシステム領域への変更は行わない。
+dry-runはbrew、file作成、state更新を実行しない。
+
 ## 再実行
 
 同じ入力で既存設定を重複追加しない。ただしapt packageは利用repoの現行versionへ更新され得る。

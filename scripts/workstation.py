@@ -140,7 +140,7 @@ def find_agent(name):
         raise Failure(f'Agent executable not found: {name}. Install and authenticate it manually.')
     executable = str(Path(executable).resolve())
     if executable.lower().endswith('.exe') or executable.startswith('/mnt/'):
-        raise Failure('Use a Linux Agent executable, not a Windows/mounted-drive executable.')
+        raise Failure('Use a native Agent executable, not a Windows/mounted-drive executable.')
     return executable
 
 
@@ -191,8 +191,13 @@ def session(args):
 
 def doctor(_args):
     missing = []
-    release = Path('/proc/sys/kernel/osrelease').read_text().strip() if Path('/proc/sys/kernel/osrelease').exists() else ''
-    print('WSL kernel detected: ' + ('yes' if 'microsoft' in release.lower() else 'no (verify Windows wsl -l -v)'))
+    if sys.platform == 'darwin':
+        import platform
+        mac_ver = platform.mac_ver()[0] or platform.release()
+        print(f'macOS (Darwin) detected: yes ({mac_ver})')
+    else:
+        release = Path('/proc/sys/kernel/osrelease').read_text().strip() if Path('/proc/sys/kernel/osrelease').exists() else ''
+        print('WSL kernel detected: ' + ('yes' if 'microsoft' in release.lower() else 'no (verify Windows wsl -l -v)'))
     for tool, version_arg, required in [('git', '--version', True), ('python3', '--version', True),
                                        ('tmux', '-V', True), ('rg', '--version', True),
                                        ('gh', '--version', False), ('agy', '--version', False),
@@ -208,7 +213,7 @@ def doctor(_args):
             # Existence only: no model request, login, or provider startup during doctor.
             print(f'FOUND {tool}: {executable} (auth/version not probed)')
             if executable.lower().endswith('.exe') or executable.startswith('/mnt/'):
-                print('WARNING: use WSL Linux Agent binary.')
+                print('WARNING: use native Agent binary.')
         else:
             value = run([executable, version_arg], check=False)
             first = (value.stdout or value.stderr).splitlines()

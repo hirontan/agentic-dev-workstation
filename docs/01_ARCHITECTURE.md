@@ -4,12 +4,12 @@
 
 | 層 | 標準 | 責務 |
 |---|---|---|
-| Host | Windows 11 / Windows Terminal | 入出力、ネットワーク、電源管理 |
-| Execution | WSL2 / Ubuntu 24.04 | Git、Agent CLI、test、dev server |
+| Host | Windows 11 または macOS | 入出力、ネットワーク、電源管理 |
+| Execution | WSL2 (Ubuntu 24.04) または macOS (Darwin) | Git、Agent CLI、test、dev server |
 | Session | tmux | 端末からdetach/attachする実行セッション |
 | Workspace | Git worktree | Issueごとのファイルとbranchの分離 |
 | Agent | Antigravity CLI `agy` | 調査、実装、テスト、説明 |
-| Review UI | WSL対応を確認したIDE | 差分、デバッグ、レビュー |
+| Review UI | 各OS対応のIDE | 差分、デバッグ、レビュー |
 | Workflow | GitHub Issue / PR | 範囲・受入条件・レビュー・統合 |
 
 ## データと実行

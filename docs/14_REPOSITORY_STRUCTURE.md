@@ -4,15 +4,16 @@
 |---|---|
 | README.md | 入口、quick start、初期scope |
 | AGENTS.md | 本リポジトリの編集ルール |
-| docs/00〜15 | 設計、導入、運用、受入 |
+| docs/00〜16 | 設計、導入、運用、受入 |
 | architecture/ | topology / execution / workflow |
 | adr/ | 判断理由と代替案 |
 | bootstrap/windows/setup.ps1 | WSLのplan/apply |
 | bootstrap/wsl/setup.sh | Ubuntu base導入、設定保護 |
+| bootstrap/macos/setup.sh | macOS base導入、設定保護 |
 | config/windows/ | WSL resource設定例 |
 | config/tmux/ | tmux標準設定 |
-| config/git/ | identityを含まない共通Git設定 |
-| config/shell/ | BashのPATH |
+| config/git/gitconfig | identityを含まない共通Git設定 |
+| config/shell/ | Bash/ZshのPATH |
 | config/antigravity/ | 設定方針のみ。tokenは含めない |
 | bin/workstation | symlinkから呼べるCLI入口 |
 | scripts/workstation.py | worktree/session/doctorの実装 |

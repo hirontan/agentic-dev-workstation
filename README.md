@@ -2,7 +2,7 @@
 
 Reproducible development workstation for agentic software engineering.
 
-Windows 11 + WSL2 Ubuntu + tmux + Git worktree を使い、GitHub Issue単位で
+Windows 11 + WSL2 Ubuntu または macOS + tmux + Git worktree を使い、GitHub Issue単位で
 Coding Agentへ実装を依頼するための、設計・セットアップ・運用の正本です。
 人間は作業範囲と受入条件を決め、差分・テスト・PRをレビューします。
 Antigravity CLIを最初の実行ツールとし、他のAgentへ交換できる構成にします。
@@ -14,6 +14,7 @@ Antigravity CLIを最初の実行ツールとし、他のAgentへ交換できる
 | Architecture / ADR / 日本語の運用手順 | `docs/`、`architecture/`、`adr/` |
 | WindowsのWSL導入 | PowerShell、既定は変更予定の表示 |
 | Ubuntu基本CLI・tmux・shell設定 | Bash、既定は変更予定の表示 |
+| macOS基本CLI・tmux・shell設定 | Bash/Homebrew、既定は変更予定の表示 |
 | worktree作成・安全な削除 | `bin/workstation` |
 | tmuxセッション作成・Agent起動 | `bin/workstation session` |
 | プロジェクト用AGENTS・Issue・PRテンプレート | `templates/` |
@@ -28,10 +29,12 @@ GitHubへリポジトリを作成・公開する操作は含みません。
 1. [全体像](docs/00_OVERVIEW.md)
 2. [Architecture](docs/01_ARCHITECTURE.md)
 3. [Bootstrap方針](docs/13_BOOTSTRAP_POLICY.md)
-4. [Windows](docs/02_WINDOWS_HOST.md) → [WSL2](docs/03_WSL2.md)
+4. [Windows](docs/02_WINDOWS_HOST.md) → [WSL2](docs/03_WSL2.md) または [macOS](docs/16_MACOS_HOST.md)
 5. [Antigravity](docs/06_ANTIGRAVITY.md) → [最初のIssue](examples/tmux-agent-workflow.md)
 
 ## Quick start
+
+### Windows + WSL2
 
 Windows側で展開したフォルダから、管理者PowerShellを開きます。
 WSL導入済みならWindowsの導入工程を省略できます。
@@ -53,6 +56,18 @@ source ~/.bashrc
 workstation doctor
 ```
 
+### macOS
+
+Homebrewが導入された環境でターミナルを開きます（未導入時は [macOS host](docs/16_MACOS_HOST.md) 参照）。
+
+```bash
+cd ~/src/agentic-dev-workstation
+bash bootstrap/macos/setup.sh
+bash bootstrap/macos/setup.sh --apply
+source ~/.zshrc  # Bashの場合は source ~/.bashrc
+workstation doctor
+```
+
 `~/.local/bin/workstation`はこのフォルダへのsymlinkです。移動後はbootstrapを再実行してください。
 実行権限が失われたZIP展開でも、Bash/Pythonで呼び出せます。
 
@@ -64,7 +79,7 @@ git config --global user.email 'YOUR_EMAIL'
 gh auth login
 ```
 
-Antigravityは[公式インストーラを確認して導入](docs/06_ANTIGRAVITY.md)し、WSLで`agy`を起動してログインします。
+Antigravityは[公式インストーラを確認して導入](docs/06_ANTIGRAVITY.md)し、WSLまたはmacOSで`agy`を起動してログインします。
 プロジェクトでは次の順に使います。
 
 ```bash
@@ -81,7 +96,7 @@ CLIはIssueの取得・自動送信・PR作成・mergeを行いません。
 
 ## 設計原則
 
-- ソースコード・依存関係・worktreeはWSLのLinuxファイルシステムへ置く。
+- ソースコード・依存関係・worktreeはWSLのLinuxファイルシステム（またはmacOSネイティブ領域）へ置く。
 - 一つのIssueに一つのbranch/worktreeを割り当てる。
 - worktreeはファイルの分離。資格情報、DB、Docker、portの分離は別途設計する。
 - tmuxは端末切断からセッションを保護する。スリープ・WSL停止・OS再起動時の実行保証はない。
@@ -90,7 +105,7 @@ CLIはIssueの取得・自動送信・PR作成・mergeを行いません。
 
 ## ディレクトリと運用
 
-[ディレクトリ構成](docs/14_REPOSITORY_STRUCTURE.md) / [日常運用](docs/08_AGENT_WORKFLOW.md) /
+[ディレクトリ構成](docs/14_REPOSITORY_STRUCTURE.md) / [日常運用](docs/08_AGENT_WORKFLOW.md) / [macOS環境](docs/16_MACOS_HOST.md) /
 [Security](docs/10_SECURITY.md) / [Troubleshooting](docs/11_TROUBLESHOOTING.md) /
 [Migration](docs/12_MIGRATION.md) / [Roadmap](ROADMAP.md) / [検証結果](VALIDATION.md)
 

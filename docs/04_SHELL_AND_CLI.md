@@ -2,13 +2,16 @@
 
 ## Base profile
 
-bootstrapはUbuntu aptで以下を導入する。
+Ubuntuではaptで以下を導入する。
 `build-essential ca-certificates git curl wget unzip zip jq ripgrep fd-find fzf tmux direnv tree htop gh python3 shellcheck ncurses-term`
+Ubuntuでのfd-findのコマンド名は`fdfind`。
 
-`apt-get update`と`apt-get install`を実行するが、全OSのupgradeは自動実行しない。
-apt repoの現在versionを使うため、bit単位で同一の再現は保証しない。
+macOSではHomebrewで以下を導入する。
+`git curl wget jq ripgrep fd fzf tmux direnv tree htop gh python3 shellcheck`
+macOSでのfdのコマンド名は`fd`。
+
+パッケージマネージャの全OS upgradeは自動実行しない。
 適用後のpackage versionsを`~/.local/state/agentic-dev-workstation/packages.tsv`へ記録する。
-fd-findのUbuntuコマンド名は`fdfind`。
 
 ## Git設定
 

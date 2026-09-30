@@ -8,6 +8,13 @@
 - applyを2回実行し、source行・symlinkが重複せず、既存設定を維持。
 - doctorでLinux Git/Python/tmux/CLIを確認。
 
+## macOS
+
+- macOS bootstrapをplanで実行し、変更しないことを確認。
+- apply後、Homebrew base packagesが導入され、`~/.local/bin/workstation`のsymlinkが作成される。
+- applyを2回実行し、`.zshrc`や`.bashrc`のsource行・symlinkが重複せず、既存設定を維持。
+- doctorでmacOSプラットフォームおよびGit/Python/tmux/CLIを確認。
+
 ## Sandbox project
 
 外部サービス不要の練習repositoryで始める。
